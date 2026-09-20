@@ -104,6 +104,40 @@
       "course": "System Operations",
       "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
       "createdAt": "2026-09-20T11:01:37.138Z"
+    },
+    {
+      "id": "usr_a9c90661",
+      "name": "himanshu",
+      "email": "himanshu@jg.com",
+      "passwordHash": "$2a$10$Ypjy4DxlTkx/iPZzsaApz.Kob5PisFxsAIuZ9N5tGdn9v.tCdbNg2",
+      "role": "student",
+      "departmentId": "dept_cs",
+      "course": "CS201",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "createdAt": "2026-09-20T14:46:05.833Z"
+    },
+    {
+      "id": "usr_1505e3a4",
+      "name": "john bones jones",
+      "email": "jbj@jg.com",
+      "passwordHash": "$2a$10$fmwoqjv7OYKo17UDrnURBubKX9C8FZA9gjUJfM8uvdQHJ5RK9C5H2",
+      "role": "student",
+      "departmentId": "dept_cs",
+      "course": "CS201",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "createdAt": "2026-09-20T17:34:19.303Z"
+    },
+    {
+      "id": "usr_985084c6",
+      "name": "trever witman ",
+      "email": "tw@jg.com",
+      "passwordHash": "$2a$10$ErNSI2mO680S2dY/avMLZuqxduIHxcSPfbwJP.Ro9AzvYHbv2AAv.",
+      "role": "professor",
+      "departmentId": "dept_cs",
+      "course": "CS201",
+      "avatar": "http://localhost:8000/uploads/avatar-1789926245035-503076969.png",
+      "createdAt": "2026-09-20T17:36:27.336Z",
+      "updatedAt": "2026-09-20T17:44:05.069Z"
     }
   ],
   "documents": [
@@ -210,6 +244,36 @@
       "difficulty": "Foundational",
       "departmentId": "dept_cs",
       "courseId": "course_cs201"
+    },
+    {
+      "id": "log_c7022ab7",
+      "studentId": "usr_student_01",
+      "studentName": "Alex Rivera",
+      "studentAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "queryText": "yooo",
+      "timestamp": "Just now",
+      "topic": "Data Structures & Algorithms",
+      "exchanges": 2,
+      "status": "resolved",
+      "difficulty": "Intermediate",
+      "departmentId": "dept_cs",
+      "courseId": "course_cs201",
+      "createdAt": "2026-09-20T14:46:24.163Z"
+    },
+    {
+      "id": "log_b8cdff06",
+      "studentId": "usr_student_01",
+      "studentName": "Alex Rivera",
+      "studentAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "queryText": "yooo",
+      "timestamp": "Just now",
+      "topic": "Data Structures & Algorithms",
+      "exchanges": 2,
+      "status": "resolved",
+      "difficulty": "Intermediate",
+      "departmentId": "dept_cs",
+      "courseId": "course_cs201",
+      "createdAt": "2026-09-20T17:35:43.937Z"
     }
   ],
   "prompt_configs": {

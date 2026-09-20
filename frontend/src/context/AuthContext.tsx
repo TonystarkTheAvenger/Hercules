@@ -10,6 +10,7 @@ interface AuthContextType {
   token: string | null;
   login: (email: string, pass: string) => Promise<boolean>;
   register: (name: string, email: string, pass: string, role: UserRole) => Promise<boolean>;
+  updateProfile: (avatar: string | File) => Promise<boolean>;
   logout: () => void;
   allUsers: any[];
   deleteUser: (id: string) => Promise<void>;
@@ -106,6 +107,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (avatar: string | File): Promise<boolean> => {
+    if (!token) return false;
+    try {
+      let body;
+      let headers: HeadersInit = { Authorization: `Bearer ${token}` };
+      
+      if (avatar instanceof File) {
+        const formData = new FormData();
+        formData.append('avatarFile', avatar);
+        body = formData;
+      } else {
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify({ avatar });
+      }
+
+      const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: 'PUT',
+        headers,
+        body
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Update profile error:', err);
+      return false;
+    }
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -138,6 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         login,
         register,
+        updateProfile,
         logout,
         allUsers: usersDb,
         deleteUser,

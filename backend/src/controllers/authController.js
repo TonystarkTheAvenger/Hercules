@@ -133,3 +133,28 @@ export async function deleteUser(req, res) {
     return res.status(500).json({ error: 'Server error deleting user' });
   }
 }
+
+export async function updateMe(req, res) {
+  try {
+    let { avatar } = req.body;
+    
+    // If a file was uploaded, use its URL
+    if (req.file) {
+      avatar = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    }
+
+    const user = db.findOne('users', (u) => u.id === req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    if (avatar) {
+      db.update('users', (u) => u.id === req.user.id, { avatar });
+    }
+    
+    const updatedUser = db.findOne('users', (u) => u.id === req.user.id);
+    return res.json({ user: formatUserResponse(updatedUser) });
+  } catch (err) {
+    return res.status(500).json({ error: 'Server error updating user profile' });
+  }
+}

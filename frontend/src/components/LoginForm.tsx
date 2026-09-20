@@ -61,7 +61,7 @@ export const LoginForm: React.FC = () => {
             <div className="space-y-1.5 animate-fade-in">
               <label className="block text-xs font-medium text-[#A3A3A3]">Role</label>
               <div className="flex bg-[#0A0A0A] border border-white/10 rounded-lg p-1">
-                {(['student', 'professor', 'admin'] as const).map((r) => (
+                {(['student', 'professor'] as const).map((r) => (
                   <button key={r} type="button" onClick={() => setRole(r)}
                     className={`flex-1 py-1.5 text-xs font-medium rounded-md capitalize transition-all ${role === r ? 'bg-white text-black shadow-sm' : 'text-[#A3A3A3] hover:text-white'}`}>
                     {r}
