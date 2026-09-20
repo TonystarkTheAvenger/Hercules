@@ -9,6 +9,7 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { CustomCursor } from './components/CustomCursor';
 import { AboutPage } from './pages/AboutPage';
 import { Footer } from './components/Footer';
+import { PdfViewerModal } from './components/PdfViewerModal';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, role } = useAuth();
@@ -56,6 +57,7 @@ const AppContent: React.FC = () => {
         )}
       </main>
       <Footer />
+      <PdfViewerModal />
       </div>
     </div>
   );

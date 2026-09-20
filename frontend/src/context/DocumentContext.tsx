@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { Document } from '../types';
-import { INITIAL_DOCUMENTS } from '../api/mockData';
-
 interface DocumentContextType {
   documents: Document[];
   selectedDocIds: string[];
@@ -19,13 +17,27 @@ interface DocumentContextType {
 
 const DocumentContext = createContext<DocumentContextType | undefined>(undefined);
 
+const API_BASE_URL = 'http://localhost:8000';
+
 export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [documents, setDocuments] = useState<Document[]>(INITIAL_DOCUMENTS);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [indexingStatusText, setIndexingStatusText] = useState('');
   const [viewingDocId, setViewingDocId] = useState<string | null>(null);
+
+  // Fetch initial documents from backend
+  React.useEffect(() => {
+    fetch(`${API_BASE_URL}/api/documents`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setDocuments(data);
+        }
+      })
+      .catch(err => console.error("Error fetching documents:", err));
+  }, []);
 
   const toggleSelectDoc = (id: string) => {
     setSelectedDocIds((prev) =>
@@ -41,68 +53,54 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSelectedDocIds([]);
   };
 
-  const deleteDocument = (id: string) => {
-    setDocuments((prev) => prev.filter((d) => d.id !== id));
-    setSelectedDocIds((prev) => prev.filter((i) => i !== id));
+  const deleteDocument = async (id: string) => {
+    try {
+      await fetch(`${API_BASE_URL}/api/documents/${id}`, { method: 'DELETE' });
+      setDocuments((prev) => prev.filter((d) => d.id !== id));
+      setSelectedDocIds((prev) => prev.filter((i) => i !== id));
+    } catch (err) {
+      console.error("Error deleting document:", err);
+    }
   };
 
   const uploadDocument = async (file: File): Promise<Document> => {
     setIsUploading(true);
-    setUploadProgress(15);
-    setIndexingStatusText('Reading document bytes & extracting pages...');
+    setUploadProgress(20);
+    setIndexingStatusText('Uploading to server...');
 
-    // Read the file as base64
-    const base64Data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Strip the data URL prefix (e.g., "data:application/pdf;base64,")
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('course', 'CS401');
 
-    setUploadProgress(45);
-    setIndexingStatusText('Parsing text hierarchy & code blocks...');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/documents/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      setUploadProgress(70);
+      setIndexingStatusText('Parsing and indexing document...');
+      
+      const newDoc = await res.json();
+      
+      setUploadProgress(100);
+      setIndexingStatusText('Complete');
 
-    await new Promise((r) => setTimeout(r, 400));
-    setUploadProgress(75);
-    setIndexingStatusText('Generating semantic vectors & chunking...');
+      setDocuments((prev) => [newDoc, ...prev]);
+      setSelectedDocIds((prev) => [...prev, newDoc.id]);
+      
+      setIsUploading(false);
+      setUploadProgress(0);
+      setIndexingStatusText('');
 
-    await new Promise((r) => setTimeout(r, 300));
-    setUploadProgress(100);
-    setIndexingStatusText('Indexing chunks in ChromaDB vector store...');
-
-    await new Promise((r) => setTimeout(r, 200));
-
-    const estPages = Math.max(2, Math.floor(file.size / (1024 * 70)));
-    const estChunks = estPages * 4;
-
-    const newDoc: Document = {
-      id: `doc_${Date.now()}`,
-      title: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
-      filename: file.name,
-      filesize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      pages: estPages,
-      uploadDate: new Date().toISOString().split('T')[0],
-      status: 'indexed',
-      chunksCount: estChunks,
-      course: 'CS201',
-      extractedTopics: ['Lecture Slides', 'Algorithms', 'Core Concepts'],
-      description: `Newly indexed course document parsed into ${estChunks} semantic vector chunks.`,
-      base64Data,
-      mimeType: file.type || 'application/pdf',
-    };
-
-    setDocuments((prev) => [newDoc, ...prev]);
-    setSelectedDocIds((prev) => [...prev, newDoc.id]);
-    setIsUploading(false);
-    setUploadProgress(0);
-    setIndexingStatusText('');
-
-    return newDoc;
+      return newDoc;
+    } catch (error) {
+      console.error("Upload error:", error);
+      setIsUploading(false);
+      setUploadProgress(0);
+      setIndexingStatusText('');
+      throw error;
+    }
   };
 
   return (

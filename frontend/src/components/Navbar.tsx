@@ -9,11 +9,7 @@ export const Navbar: React.FC = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const mockNotifications = [
-    { id: 1, text: 'Your recent quiz on Graphs was graded.', time: '10m ago' },
-    { id: 2, text: 'Prof. Vance uploaded "Advanced Trees.pdf"', time: '1h ago' },
-    { id: 3, text: 'Reminder: Midterm review session tomorrow.', time: '1d ago' },
-  ];
+  const notifications: any[] = [];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -67,17 +63,23 @@ export const Navbar: React.FC = () => {
                   <button onClick={() => setIsNotificationsOpen(false)} className="text-xs text-[#A3A3A3] hover:text-white transition-colors">Mark all as read</button>
                 </div>
                 <div className="max-h-80 overflow-y-auto">
-                  {mockNotifications.map((notif) => (
-                    <div key={notif.id} className="p-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors flex items-start gap-3 cursor-pointer group">
-                      <div className="mt-0.5">
-                        <CheckCircle2 className="w-4 h-4 text-[#D4AF37] opacity-60 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-[#E5E5E5] leading-relaxed">{notif.text}</p>
-                        <p className="text-[10px] text-[#A3A3A3] mt-1">{notif.time}</p>
-                      </div>
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-[#737373]">
+                      No new notifications.
                     </div>
-                  ))}
+                  ) : (
+                    notifications.map((notif) => (
+                      <div key={notif.id} className="p-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors flex items-start gap-3 cursor-pointer group">
+                        <div className="mt-0.5">
+                          <CheckCircle2 className="w-4 h-4 text-[#D4AF37] opacity-60 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-[#E5E5E5] leading-relaxed">{notif.text}</p>
+                          <p className="text-[10px] text-[#A3A3A3] mt-1">{notif.time}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
                 <div className="p-2 text-center bg-[#050505]">
                   <button className="text-[11px] text-[#A3A3A3] hover:text-white transition-colors">View all notifications</button>

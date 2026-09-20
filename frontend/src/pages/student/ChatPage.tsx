@@ -5,19 +5,17 @@ import { KnowledgeVaultPage } from '../../pages/student/KnowledgeVaultPage';
 import { ChatBubble } from '../../components/ChatBubble';
 import { ChatInput } from '../../components/ChatInput';
 import { QuizPage } from '../../pages/student/QuizPage';
-import { BookOpen, RotateCcw, Zap, Sparkles, X } from 'lucide-react';
+import { BookOpen, RotateCcw, Zap, Sparkles } from 'lucide-react';
 
 export const ChatPage: React.FC = () => {
   const { messages, isThinking, activeTopic, openQuiz, resetChat } = useChat();
-  const { selectedDocIds, documents, viewingDocId, setViewingDocId } = useDocuments();
+  const { selectedDocIds } = useDocuments();
   const [isVaultOpenMobile, setIsVaultOpenMobile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isThinking]);
-
-  const viewingDoc = documents.find(d => d.id === viewingDocId);
 
   return (
     <div className="flex-1 flex overflow-hidden relative bg-transparent animate-fade-in">
@@ -133,41 +131,6 @@ export const ChatPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Optional PDF Viewer Side Panel */}
-      {viewingDoc && (
-        <div className="hidden xl:flex w-[40%] max-w-[600px] flex-col liquid-panel border-y-0 border-r-0 animate-fade-in-right relative rounded-none bg-[#0a0a0a]">
-          <div className="px-4 py-3 border-b border-white/[0.08] flex items-center justify-between shrink-0 bg-[#111111]">
-            <div className="flex items-center gap-2 min-w-0">
-              <BookOpen className="w-4 h-4 text-white shrink-0" />
-              <h3 className="text-sm font-medium text-white truncate">
-                {viewingDoc.title}
-              </h3>
-            </div>
-            <button
-              onClick={() => setViewingDocId(null)}
-              className="p-1 hover:bg-white/[0.08] rounded text-[#A3A3A3] hover:text-white transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex-1 relative bg-white/[0.01]">
-            {viewingDoc.base64Data ? (
-              <iframe
-                src={`data:${viewingDoc.mimeType || 'application/pdf'};base64,${viewingDoc.base64Data}`}
-                className="w-full h-full border-none opacity-90 mix-blend-screen"
-                title={viewingDoc.title}
-              />
-            ) : (
-              <div className="flex flex-col space-y-3 items-center justify-center h-full text-[#A3A3A3]">
-                <BookOpen className="w-10 h-10 opacity-20" />
-                <p className="text-sm">No preview available for mock document.</p>
-                <p className="text-xs">Upload a real PDF to view it here.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Instant Quiz Modal */}
       <QuizPage />

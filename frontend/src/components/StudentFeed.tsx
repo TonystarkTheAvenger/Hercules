@@ -1,9 +1,18 @@
-import React from 'react';
-import { RECENT_STUDENT_QUERIES } from '../api/mockData';
+import React, { useState, useEffect } from 'react';
+import { fetchProfessorAnalytics } from '../api/client';
+import type { StudentQueryLog } from '../types';
 import { Clock } from 'lucide-react';
 import { Badge } from '../components/Badge';
 
 export const StudentFeed: React.FC = () => {
+  const [queries, setQueries] = useState<StudentQueryLog[]>([]);
+
+  useEffect(() => {
+    fetchProfessorAnalytics().then(data => {
+      setQueries(data.queries);
+    }).catch(console.error);
+  }, []);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -22,12 +31,12 @@ export const StudentFeed: React.FC = () => {
       </div>
 
       <div className="space-y-2">
-        {RECENT_STUDENT_QUERIES.length === 0 ? (
+        {queries.length === 0 ? (
           <div className="p-8 border border-app-border border-dashed text-center text-app-text-primary/50 text-xs">
             No recent student activity.
           </div>
         ) : (
-          RECENT_STUDENT_QUERIES.map((log) => {
+          queries.map((log) => {
           let statusBadge = <Badge variant="default">In Progress</Badge>;
           if (log.status === 'resolved') {
             statusBadge = <Badge variant="success">Resolved</Badge>;

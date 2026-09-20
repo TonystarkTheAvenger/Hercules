@@ -4,7 +4,7 @@ import { UploadCloud, FileText, Trash2, RefreshCw } from 'lucide-react';
 import { Badge } from '../../components/Badge';
 
 export const DocumentManagerPage: React.FC = () => {
-  const { documents, uploadDocument, deleteDocument, isUploading, uploadProgress, indexingStatusText } =
+  const { documents, uploadDocument, deleteDocument, isUploading, uploadProgress, indexingStatusText, setViewingDocId } =
     useDocuments();
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -122,7 +122,12 @@ export const DocumentManagerPage: React.FC = () => {
                     <div className="flex items-center gap-2.5">
                       <FileText className="w-4 h-4 text-app-text-primary shrink-0" />
                       <div>
-                        <p className="font-medium text-app-text-primary">{doc.title}</p>
+                        <button 
+                          onClick={() => setViewingDocId(doc.id)}
+                          className="font-medium text-app-text-primary hover:underline focus:outline-none text-left"
+                        >
+                          {doc.title}
+                        </button>
                         <p className="text-[11px] text-app-text-primary">{doc.filename}</p>
                       </div>
                     </div>

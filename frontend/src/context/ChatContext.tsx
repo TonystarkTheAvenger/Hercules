@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { Message, QuizQuestion } from '../types';
-import { INITIAL_CHAT_MESSAGES } from '../api/mockData';
 import { sendChatMessage, generateQuiz } from '../api/client';
 import { useDocuments } from '../context/DocumentContext';
 
@@ -22,7 +21,7 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [messages, setMessages] = useState<Message[]>(INITIAL_CHAT_MESSAGES);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isThinking, setIsThinking] = useState(false);
   const [activeTopic, setActiveTopic] = useState<string>('AVL Tree Rotations');
   const [isQuizOpen, setIsQuizOpen] = useState(false);
@@ -47,7 +46,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const activeDocs = documents.filter((d) => selectedDocIds.includes(d.id));
-      const response = await sendChatMessage(content, [...messages, userMsg], activeDocs);
+      // Do not include userMsg in history, as the backend appends the new message manually
+      const response = await sendChatMessage(content, messages, activeDocs);
 
       if (response.topic) {
         setActiveTopic(response.topic);

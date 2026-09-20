@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import { Badge } from '../components/Badge';
+import { fetchBottlenecks } from '../api/client';
 
 export const BottleneckAlerts: React.FC = () => {
-  const bottlenecks: any[] = [];
+  const [bottlenecks, setBottlenecks] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchBottlenecks().then(setBottlenecks).catch(console.error);
+  }, []);
 
   return (
     <div className="space-y-4">

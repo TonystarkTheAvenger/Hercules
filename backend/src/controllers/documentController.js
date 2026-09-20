@@ -100,6 +100,8 @@ export async function uploadDocument(req, res) {
       departmentId,
       extractedTopics: ['Course Material', 'Lecture Content', title],
       description: `Indexed ${pageCount} pages into ${chunks.length || 1} semantic vector chunks.`,
+      url: `${req.protocol}://${req.get('host')}/uploads/${file.filename}`,
+      mimeType: file.mimetype || 'application/pdf',
     };
 
     db.insert('documents', newDoc);

@@ -1,8 +1,17 @@
-import React from 'react';
-import { TOPIC_INSIGHTS } from '../api/mockData';
+import React, { useState, useEffect } from 'react';
+import { fetchProfessorAnalytics } from '../api/client';
+import type { TopicInsight } from '../types';
 import { Badge } from '../components/Badge';
 
 export const KeywordInsights: React.FC = () => {
+  const [insights, setInsights] = useState<TopicInsight[]>([]);
+
+  useEffect(() => {
+    fetchProfessorAnalytics().then(data => {
+      setInsights(data.insights);
+    }).catch(console.error);
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Main Topic Breakdown */}
@@ -17,7 +26,7 @@ export const KeywordInsights: React.FC = () => {
         </div>
 
         <div className="space-y-3.5 pt-1">
-          {TOPIC_INSIGHTS.map((item, idx) => {
+          {insights.map((item, idx) => {
             return (
               <div key={idx} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">

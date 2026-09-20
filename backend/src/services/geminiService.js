@@ -1,14 +1,19 @@
 import { GoogleGenAI } from '@google/genai';
 import { db } from '../db/database.js';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_API_KEYS = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+let currentKeyIndex = 0;
 
-let aiClient = null;
-if (GEMINI_API_KEY) {
+function getAiClient() {
+  if (GEMINI_API_KEYS.length === 0) return null;
+  const key = GEMINI_API_KEYS[currentKeyIndex];
+  // Rotate to the next key for the next request
+  currentKeyIndex = (currentKeyIndex + 1) % GEMINI_API_KEYS.length;
   try {
-    aiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    return new GoogleGenAI({ apiKey: key });
   } catch (e) {
     console.warn('Failed to initialize GoogleGenAI client:', e.message);
+    return null;
   }
 }
 
@@ -61,51 +66,88 @@ export async function generateSocraticResponse({ message, history = [], document
       relevantChunks.map((c, i) => `[Source ${i + 1} - ${c.documentTitle}, Page ${c.pageNumber}]: ${c.content}`).join('\n')
     : '';
 
-  const systemInstruction = `${promptConfig.systemPrompt}
-Direct Answer Prevention: Strict.
-Pedagogical Rule: NEVER spoon-feed code or direct solutions. Use Socratic inquiry to guide the student towards formulating the answer themselves.
-${isStruggle ? 'NOTE: The student has taken multiple turns and appears stuck. Provide a gentle scaffolded hint, but still end with an empowering question.' : ''}
+  const systemInstruction = `You are a helpful and highly accurate AI tutor.
+CRITICAL INSTRUCTIONS TO SAVE TOKENS:
+1. Talk freely and give direct, accurate answers to whatever the user asks.
+2. You MUST keep your responses extremely concise. Use small sentences.
+3. Your ENTIRE response MUST be 2-3 sentences MAXIMUM. This is a strict token-saving limit. Do NOT generate long explanations.
 ${contextText}
 At the very end of your reply, ALWAYS include a topic tag wrapped in square brackets, e.g.: [Topic: AVL Tree Rotations]`;
 
   // If Gemini API Key is configured, use real Gemini LLM
-  if (GEMINI_API_KEY && aiClient) {
-    try {
-      const response = await aiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [
-          ...history.map((h) => ({
-            role: h.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: h.content }],
-          })),
-          {
-            role: 'user',
-            parts: [{ text: message }],
+  let aiClient = getAiClient();
+  if (aiClient) {
+    let retries = Math.max(3, GEMINI_API_KEYS.length);
+    let delay = 1000;
+    while (retries > 0) {
+      try {
+        const response = await aiClient.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents: [
+            ...history.map((h) => ({
+              role: h.role === 'assistant' ? 'model' : 'user',
+              parts: [{ text: h.content }],
+            })),
+            {
+              role: 'user',
+              parts: [{ text: message }],
+            },
+          ],
+          config: {
+            systemInstruction,
+            temperature: 0.7,
           },
-        ],
-        config: {
-          systemInstruction,
-          temperature: 0.7,
-        },
-      });
+        });
 
-      const rawText = response.text || '';
-      let topic = 'Computer Science';
-      const topicMatch = rawText.match(/\[Topic:\s*(.*?)\]/i);
-      if (topicMatch) {
-        topic = topicMatch[1].trim();
+        const rawText = response.text || '';
+        let topic = 'Computer Science';
+        const topicMatch = rawText.match(/\[Topic:\s*(.*?)\]/i);
+        if (topicMatch) {
+          topic = topicMatch[1].trim();
+        }
+
+        const cleanReply = rawText.replace(/\[Topic:\s*.*?\]/i, '').trim();
+
+        return {
+          reply: cleanReply,
+          topic,
+          citations,
+          is_hint: isStruggle,
+        };
+      } catch (apiErr) {
+        if (apiErr.message.includes('503') || apiErr.status === 503 || apiErr.message.includes('UNAVAILABLE')) {
+          console.warn(`Gemini API 503 error, retrying in ${delay}ms... (${retries} retries left)`);
+          await new Promise(r => setTimeout(r, delay));
+          retries--;
+          delay *= 2;
+        } else if (apiErr.message.includes('429') || apiErr.status === 429 || apiErr.message.includes('RESOURCE_EXHAUSTED')) {
+          console.warn('Gemini API Rate Limit Exceeded (429). Rotating key and retrying...');
+          aiClient = getAiClient(); // Try next key
+          if (retries === 1 && GEMINI_API_KEYS.length === 1) {
+             return {
+                reply: "I'm receiving too many requests right now and hit a rate limit. Please wait about a minute and try asking again!",
+                topic: "System Limits",
+                citations: [],
+                is_hint: false,
+             };
+          }
+          await new Promise(r => setTimeout(r, delay));
+          retries--;
+          if (GEMINI_API_KEYS.length === 1) delay *= 2;
+        } else if (apiErr.status === 401 || apiErr.status === 403 || apiErr.status === 400 || apiErr.message.includes('UNAUTHENTICATED') || apiErr.message.includes('invalid authentication credentials')) {
+          console.warn(`Gemini API Auth Error (${apiErr.status}). The current key might be invalid. Rotating key and retrying...`);
+          aiClient = getAiClient(); // Try next key
+          if (retries === 1 && GEMINI_API_KEYS.length === 1) {
+             console.error('Gemini API call failed with auth error, falling back to heuristics:', apiErr.message);
+             break;
+          }
+          await new Promise(r => setTimeout(r, delay));
+          retries--;
+        } else {
+          console.error('Gemini API call failed, falling back to intelligent Socratic heuristics:', apiErr.message);
+          break; // break loop and fall back
+        }
       }
-
-      const cleanReply = rawText.replace(/\[Topic:\s*.*?\]/i, '').trim();
-
-      return {
-        reply: cleanReply,
-        topic,
-        citations,
-        is_hint: isStruggle,
-      };
-    } catch (apiErr) {
-      console.error('Gemini API call failed, falling back to intelligent Socratic heuristics:', apiErr.message);
     }
   }
 
@@ -144,9 +186,9 @@ At the very end of your reply, ALWAYS include a topic tag wrapped in square brac
  * Quiz Question Generator
  */
 export async function generateQuizQuestions(topic = 'AVL Trees') {
-  if (GEMINI_API_KEY && aiClient) {
-    try {
-      const prompt = `Generate exactly 3 multiple-choice conceptual questions testing understanding of: "${topic}".
+  let aiClient = getAiClient();
+  if (aiClient) {
+    const prompt = `Generate exactly 3 multiple-choice conceptual questions testing understanding of: "${topic}".
 Output MUST be valid JSON array with this exact structure:
 [
   {
@@ -160,20 +202,53 @@ Output MUST be valid JSON array with this exact structure:
   }
 ]`;
 
-      const response = await aiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          responseMimeType: 'application/json',
-        },
-      });
+    let retries = Math.max(3, GEMINI_API_KEYS.length);
+    let delay = 1000;
+    while (retries > 0) {
+      try {
+        const response = await aiClient.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          config: {
+            responseMimeType: 'application/json',
+          },
+        });
 
-      const parsed = JSON.parse(response.text);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        const parsed = JSON.parse(response.text);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+        break; // success or invalid format, stop retrying
+      } catch (apiErr) {
+        if (apiErr.message.includes('503') || apiErr.status === 503 || apiErr.message.includes('UNAVAILABLE')) {
+          console.warn(`Gemini API 503 error in quiz, retrying in ${delay}ms... (${retries} retries left)`);
+          await new Promise(r => setTimeout(r, delay));
+          retries--;
+          delay *= 2;
+        } else if (apiErr.message.includes('429') || apiErr.status === 429 || apiErr.message.includes('RESOURCE_EXHAUSTED')) {
+          console.warn('Gemini API Rate Limit Exceeded (429) in quiz. Rotating key and retrying...');
+          aiClient = getAiClient();
+          if (retries === 1 && GEMINI_API_KEYS.length === 1) {
+             break; // Let it fall back to curated questions so the UI doesn't break
+          }
+          await new Promise(r => setTimeout(r, delay));
+          retries--;
+          if (GEMINI_API_KEYS.length === 1) {
+             delay *= 2;
+          }
+        } else if (apiErr.status === 401 || apiErr.status === 403 || apiErr.status === 400 || apiErr.message.includes('UNAUTHENTICATED') || apiErr.message.includes('invalid authentication credentials')) {
+          console.warn(`Gemini API Auth Error (${apiErr.status}) in quiz. The current key might be invalid. Rotating key and retrying...`);
+          aiClient = getAiClient();
+          if (retries === 1 && GEMINI_API_KEYS.length === 1) {
+             break;
+          }
+          await new Promise(r => setTimeout(r, delay));
+          retries--;
+        } else {
+          console.warn('Quiz generation with Gemini failed, using curated question bank:', apiErr.message);
+          break;
+        }
       }
-    } catch (e) {
-      console.warn('Quiz generation with Gemini failed, using curated question bank:', e.message);
     }
   }
 

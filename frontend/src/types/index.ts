@@ -42,6 +42,7 @@ export interface Document {
   progress?: number;
   base64Data?: string;
   mimeType?: string;
+  url?: string;
 }
 
 export interface QuizQuestion {
