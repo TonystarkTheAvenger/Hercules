@@ -12,17 +12,19 @@ export const LoginForm: React.FC = () => {
   const [role, setRole] = useState<UserRole>('student');
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
     if (isRegistering) {
       if (!name) { setError('Name is required for registration.'); return; }
-      if (!register(name, email, password, role)) {
+      const success = await register(name, email, password, role);
+      if (!success) {
         setError('Email already exists. Please use a different one.');
       }
     } else {
-      if (!login(email, password)) {
+      const success = await login(email, password);
+      if (!success) {
         setError('Invalid credentials. Please try again.');
       }
     }
